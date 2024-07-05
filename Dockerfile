@@ -8,9 +8,9 @@ RUN az bicep install
 RUN az extension add --name azure-devops
 
 # Install PowerShell Core (pwsh)
-RUN apk add ca-certificates less ncurses-terminfo-base krb5-libs libgcc libintl libssl1.1 libstdc++ tzdata userspace-rcu zlib icu-libs curl lttng-ust -X https://dl-cdn.alpinelinux.org/alpine/edge/main --no-cache && \
+RUN apk add git openssl ca-certificates-bundle curl-dev libgcc libstdc++ zlib curl libgdiplus -X https://dl-cdn.alpinelinux.org/alpine/edge/main --no-cache && \
     mkdir -p /opt/microsoft/powershell/7 && \
-    curl -s https://api.github.com/repos/PowerShell/PowerShell/releases/latest | grep -E 'browser_download_url' | grep -Eo '[^\"]*powershell-[^-]+-linux-alpine-x64[^\"]*' | xargs curl -sSL | tar -zx -C /opt/microsoft/powershell/7 && \
+    curl https://api.github.com/repos/PowerShell/PowerShell/releases/latest | grep -E 'browser_download_url' | grep -Eo '[^\"]*powershell-[^-]+-linux-musl-x64[^\"]*' | xargs curl -sSL | tar -zx -C /opt/microsoft/powershell/7 && \
     chmod +x /opt/microsoft/powershell/7/pwsh && \
     ln -s /opt/microsoft/powershell/7/pwsh /usr/bin/pwsh 
 
@@ -25,10 +25,11 @@ RUN apk add nano --no-cache
 
 # Install Kubernetes-Cli (kubectl, kubectl cert-manager)
 RUN az aks install-cli --only-show-errors && \
-    curl -sSL https://github.com/jetstack/cert-manager/releases/latest/download/kubectl-cert_manager-linux-amd64.tar.gz | tar -zx kubectl-cert_manager -C /usr/local/bin
+    curl -fsSLo /usr/local/bin/cmctl https://github.com/cert-manager/cmctl/releases/latest/download/cmctl_linux_amd64.tar.gz && \
+    chmod +x /usr/local/bin/cmctl
 
 # Install Wercker\Stern (stern)
-RUN curl -sSLo /usr/local/bin/stern https://github.com/wercker/stern/releases/latest/download/stern_linux_amd64 && \
+RUN curl -s https://api.github.com/repos/stern/stern/releases/latest | grep -E 'browser_download_url' | grep -Eo '[^\"]*stern_[^_]+_linux_amd64[^\"]*' | xargs curl -sSL | tar -zx stern -C /usr/local/bin && \
     chmod +x /usr/local/bin/stern
 
 # Install ahmetb/kubectx (kubectx)
@@ -55,13 +56,16 @@ RUN helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx && \
     rm -r /tmp/helm-whatup
 
 # Install derailed/k9s (k9s)
-RUN curl -sSL https://github.com/derailed/k9s/releases/latest/download/k9s_Linux_x86_64.tar.gz | tar -zx k9s -C /usr/local/bin
+RUN curl -sSL https://github.com/derailed/k9s/releases/latest/download/k9s_Linux_amd64.tar.gz | tar -zx k9s -C /usr/local/bin
 
 # Install derailed/popeye (popeye)
-RUN curl -sSL https://github.com/derailed/popeye/releases/latest/download/popeye_Linux_x86_64.tar.gz | tar -zx popeye -C /usr/local/bin
+RUN curl -sSL https://github.com/derailed/popeye/releases/latest/download/popeye_linux_amd64.tar.gz | tar -zx popeye -C /usr/local/bin
 
 # Install Shopify/kubeaudit (kubeaudit)
 RUN curl -s https://api.github.com/repos/Shopify/kubeaudit/releases/latest | grep -E 'browser_download_url' | grep -Eo '[^\"]*kubeaudit_[^_]+_linux_amd64[^\"]*' | xargs curl -sSL | tar -zx kubeaudit -C /usr/local/bin
+
+# Install Flux CLI (fluxcli)
+RUN curl -s https://api.github.com/repos/fluxcd/flux2/releases/latest | grep -E 'browser_download_url' | grep -Eo '[^\"]*flux_[^_]+_linux_amd64[^\"]*' | xargs curl -sSL | tar -zx flux -C /usr/local/bin
 
 # Install Kubescape
 # RUN curl -s https://raw.githubusercontent.com/armosec/kubescape/master/install.sh | /bin/bash
@@ -88,7 +92,7 @@ RUN curl -s https://api.github.com/repos/c-bata/kube-prompt/releases/latest | gr
 #     rm /tmp/kui.zip
 
 # Install Linkerd
-RUN curl -fsL https://run.linkerd.io/install | sh && \
+RUN curl -fsL https://run.linkerd.io/install-edge | sh && \
     ln -s /root/.linkerd2/bin/linkerd /usr/bin/linkerd
 
 # Install Istioctl
@@ -98,7 +102,7 @@ RUN curl -s https://api.github.com/repos/istio/istio/releases/latest | grep -E '
 
 # Install Terminal-Icons (required by Oh My Posh)
 RUN mkdir -p ~/.local/share/fonts && \
-    cd ~/.local/share/fonts && curl -fLo "Droid Sans Mono for Powerline Nerd Font Complete.otf" https://github.com/ryanoasis/nerd-fonts/raw/master/patched-fonts/DroidSansMono/complete/Droid%20Sans%20Mono%20Nerd%20Font%20Complete.otf && \
+    cd ~/.local/share/fonts && curl -fLo "Droid Sans Mono for Powerline Nerd Font Complete.otf" https://github.com/ryanoasis/nerd-fonts/raw/master/patched-fonts/DroidSansMono/DroidSansMNerdFontMono-Regular.otf && \
     pwsh -c "Install-Module -Name Terminal-Icons -Repository PSGallery -Force"
 
 # Oh My Posh # TODO: Move OMP file and put other oh my posh stuff in powershell profile
@@ -115,6 +119,7 @@ RUN apk add bash-completion && \
     printf "\nsource /etc/profile.d/bash_completion.sh" >> ~/.bashrc && \
     kubectl completion bash > $COMPLETIONS/kubectl.bash && \
     stern --completion bash > $COMPLETIONS/stern.bash && \
+    flux completion bash > $COMPLETIONS/flux.bash && \
     curl -sSLo $COMPLETIONS/kubectx.bash https://raw.githubusercontent.com/ahmetb/kubectx/master/completion/kubectx.bash && \
     curl -sSLo $COMPLETIONS/kubens.bash https://raw.githubusercontent.com/ahmetb/kubectx/master/completion/kubens.bash && \
     helm completion bash > $COMPLETIONS/helm.bash

@@ -83,7 +83,7 @@ function SwitchCurrentCluster([switch] $clear, [switch] $refresh)
 
     $global:GlobalCurrentCluster = ClusterMenu -refresh $refresh
 
-    AzAksCurrentCommand 'get-credentials -a --overwrite-existing > $1'
+    AzAksCurrentCommand 'get-credentials --overwrite-existing > $1'
 
     UpdateShellWindowTitle
     

@@ -1,3 +1,4 @@
+az config set core.login_experience_v2=off
 Clear-Host
 az login --use-device-code -o none
 
